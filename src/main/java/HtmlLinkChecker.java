@@ -114,13 +114,13 @@ public class HtmlLinkChecker {
         {
             if (!CLCheck(args))
             {
-                System.out.println("Error");
+                System.out.println("Command line reading error");
                 return;
             }
         }
         catch (ParseException e)
         {
-            System.out.println("Failure");
+            System.out.println("Parsing failed");
             return;
         }
         try
