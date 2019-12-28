@@ -13,8 +13,9 @@ import static org.junit.Assert.*;
 public class HtmlLinkCheckerTest {
 
     @Test
-    public void CLCheck(String[] args)
+    public void CLCheck()
     {
+        String[] args = {"HtmlLinkChecker", "--f", "f1.html", "--out", "report.csv"};
         try {
             assertTrue(HtmlLinkChecker.CLCheck(args));
         }
