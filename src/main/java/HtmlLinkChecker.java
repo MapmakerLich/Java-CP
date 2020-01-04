@@ -8,15 +8,16 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import java.io.File;
 import java.io.*;
-import java.io.IOException;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
+
+import static java.net.HttpURLConnection.HTTP_MULT_CHOICE;
+import static java.net.HttpURLConnection.HTTP_OK;
 
 public class HtmlLinkChecker {
     static ArrayList<String> fileList = new ArrayList<String>();
@@ -47,8 +48,16 @@ public class HtmlLinkChecker {
 
     static void parseDocument(String name) throws IOException
     {
-        File input = new File(name);
-        Document doc = Jsoup.parse(input, "UTF-8");
+        Document doc;
+        if ((checkLink(name).getKey() >= HTTP_OK)&&(checkLink(name).getKey() < HTTP_MULT_CHOICE))
+        {
+            doc = Jsoup.connect(name).get();
+        }
+        else
+        {
+            File input = new File(name);
+            doc = Jsoup.parse(input, "UTF-8");
+        }
         W3CDom w3CDom = new W3CDom();
         org.w3c.dom.Document w3cDoc = w3CDom.fromJsoup(doc);
         XPath xPath = XPathFactory.newInstance().newXPath();
@@ -59,7 +68,9 @@ public class HtmlLinkChecker {
                 linkList.add(nodeList.item(i).getNodeValue());
             }
         }
-        catch (XPathExpressionException e) { }
+        catch (XPathExpressionException e) {
+            System.out.println("Link adding failed");
+        }
         try {
             NodeList nodeList = (NodeList) xPath.compile("//@src").evaluate(w3cDoc, XPathConstants.NODESET);
             for (int i=0;i<nodeList.getLength();i++)
@@ -67,19 +78,39 @@ public class HtmlLinkChecker {
                 linkList.add(nodeList.item(i).getNodeValue());
             }
         }
-        catch (XPathExpressionException e) { }
+        catch (XPathExpressionException e) {
+            System.out.println("Link adding failed");
+        }
 
     }
 
     static Map.Entry<Integer, String> checkLink(String link) throws IOException
     {
-        URL url = new URL(link);
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        con.setRequestMethod("GET");
-        int status = con.getResponseCode();
-        String mess = con.getResponseMessage();
-        con.disconnect();
-        return new AbstractMap.SimpleEntry<>(status, mess);
+        if (link.startsWith("/"))
+        {
+
+        }
+        else if (link.startsWith("file://"))
+        {
+            URL url = new URL(link);
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("GET");
+            int status = con.getResponseCode();
+            String mess = con.getResponseMessage();
+            con.disconnect();
+            return new AbstractMap.SimpleEntry<>(status, mess);
+        }
+        else
+        {
+            URL url = new URL(link);
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("GET");
+            int status = con.getResponseCode();
+            String mess = con.getResponseMessage();
+            con.disconnect();
+            return new AbstractMap.SimpleEntry<>(status, mess);
+        }
+        return null;
     }
 
     static void addToReport(String link)
@@ -87,7 +118,7 @@ public class HtmlLinkChecker {
         try
         {
             Map.Entry<Integer, String> map = checkLink(link);
-            if ((map.getKey() < 200)||(map.getKey() >= 300))
+            if ((map.getKey() < HTTP_OK)||(map.getKey() >= HTTP_MULT_CHOICE))
             {
                 reportStream.println(link+","+map.getKey()+","+map.getValue());
                 counter++;
@@ -165,7 +196,9 @@ public class HtmlLinkChecker {
         {
             executor.awaitTermination(3, TimeUnit.MINUTES);
         }
-        catch (InterruptedException e) { }
+        catch (InterruptedException e) {
+            System.out.println("Thread error");
+        }
         System.out.println("Found "+counter+" broken links, for details check file "+reportFile);
     }
 }

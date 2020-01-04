@@ -8,6 +8,7 @@ import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Properties;
 
+import static java.net.HttpURLConnection.HTTP_OK;
 import static org.junit.Assert.*;
 
 public class HtmlLinkCheckerTest {
@@ -27,7 +28,7 @@ public class HtmlLinkCheckerTest {
 
     @Test
     public void checkLinkTest() {
-        Map.Entry<Integer, String> entry = new AbstractMap.SimpleEntry<>(200, "OK");
+        Map.Entry<Integer, String> entry = new AbstractMap.SimpleEntry<>(HTTP_OK, "OK");
         try {
             assertEquals(entry, HtmlLinkChecker.checkLink("http://google.com"));
         }
