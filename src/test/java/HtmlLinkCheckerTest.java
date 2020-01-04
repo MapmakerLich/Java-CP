@@ -15,7 +15,7 @@ public class HtmlLinkCheckerTest {
     @Test
     public void CLCheck()
     {
-        String[] args = {"HtmlLinkChecker", "--f", "f1.html", "--out", "report.csv"};
+        String[] args = {"--f", "f1.html", "--out", "report.csv"};
         try {
             assertTrue(HtmlLinkChecker.CLCheck(args));
         }
