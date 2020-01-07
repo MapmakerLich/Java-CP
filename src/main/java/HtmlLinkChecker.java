@@ -10,14 +10,14 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.*;
 import java.net.*;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
 
-import static java.net.HttpURLConnection.HTTP_MULT_CHOICE;
-import static java.net.HttpURLConnection.HTTP_OK;
+import static java.net.HttpURLConnection.*;
 
 public class HtmlLinkChecker {
     static ArrayList<String> fileList = new ArrayList<String>();
@@ -49,7 +49,7 @@ public class HtmlLinkChecker {
     static void parseDocument(String name) throws IOException
     {
         Document doc;
-        if ((checkLink(name).getKey() >= HTTP_OK)&&(checkLink(name).getKey() < HTTP_MULT_CHOICE))
+        if ((name.startsWith("http://"))&&(name.startsWith("https://"))&&(name.startsWith("ftp://"))&&(name.startsWith("file://")))
         {
             doc = Jsoup.connect(name).get();
         }
@@ -65,7 +65,7 @@ public class HtmlLinkChecker {
             NodeList nodeList = (NodeList) xPath.compile("//@href").evaluate(w3cDoc, XPathConstants.NODESET);
             for (int i=0;i<nodeList.getLength();i++)
             {
-                linkList.add(nodeList.item(i).getNodeValue());
+                addToReport(nodeList.item(i).getNodeValue(), name);
             }
         }
         catch (XPathExpressionException e) {
@@ -75,7 +75,7 @@ public class HtmlLinkChecker {
             NodeList nodeList = (NodeList) xPath.compile("//@src").evaluate(w3cDoc, XPathConstants.NODESET);
             for (int i=0;i<nodeList.getLength();i++)
             {
-                linkList.add(nodeList.item(i).getNodeValue());
+                addToReport(nodeList.item(i).getNodeValue(), name);
             }
         }
         catch (XPathExpressionException e) {
@@ -84,25 +84,37 @@ public class HtmlLinkChecker {
 
     }
 
-    static Map.Entry<Integer, String> checkLink(String link) throws IOException
+    static Map.Entry<Integer, String> checkLink(String link, String name) throws IOException
     {
+        URL url;
         if (link.startsWith("/"))
         {
-
+            String str = name+link;
+            url = new URL(str);
         }
         else if (link.startsWith("file://"))
         {
-            URL url = new URL(link);
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("GET");
-            int status = con.getResponseCode();
-            String mess = con.getResponseMessage();
-            con.disconnect();
-            return new AbstractMap.SimpleEntry<>(status, mess);
+            String str;
+            if (link.startsWith("file://localhost/"))
+            {
+                str = link.substring(16);
+            }
+            else
+            {
+                str = link.substring(8);
+            }
+            if (Files.exists(Paths.get(str)))
+            {
+                return new AbstractMap.SimpleEntry<>(HTTP_OK, "OK");
+            }
+            else
+            {
+                return new AbstractMap.SimpleEntry<>(HTTP_NOT_FOUND, "Not Found");
+            }
         }
         else
         {
-            URL url = new URL(link);
+            url = new URL(link);
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod("GET");
             int status = con.getResponseCode();
@@ -113,11 +125,11 @@ public class HtmlLinkChecker {
         return null;
     }
 
-    static void addToReport(String link)
+    static void addToReport(String link, String name)
     {
         try
         {
-            Map.Entry<Integer, String> map = checkLink(link);
+            Map.Entry<Integer, String> map = checkLink(link, name);
             if ((map.getKey() < HTTP_OK)||(map.getKey() >= HTTP_MULT_CHOICE))
             {
                 reportStream.println(link+","+map.getKey()+","+map.getValue());
@@ -165,18 +177,6 @@ public class HtmlLinkChecker {
         }
         try
         {
-            for (String string: fileList)
-            {
-                parseDocument(string);
-            }
-        }
-        catch (IOException e)
-        {
-            System.out.println("Read error");
-            return;
-        }
-        try
-        {
             pool = configProperties();
         }
         catch (IOException e)
@@ -185,10 +185,17 @@ public class HtmlLinkChecker {
             return;
         }
         ExecutorService executor = Executors.newFixedThreadPool(pool);
-        for (String string: linkList)
+        for (String string: fileList)
         {
             executor.execute(()->{
-                addToReport(string);
+                try {
+                    parseDocument(string);
+                }
+                catch (IOException e)
+                {
+                    System.out.println("Read error");
+                    return;
+                }
             });
         }
         executor.shutdown();

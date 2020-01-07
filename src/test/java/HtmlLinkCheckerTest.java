@@ -30,7 +30,7 @@ public class HtmlLinkCheckerTest {
     public void checkLinkTest() {
         Map.Entry<Integer, String> entry = new AbstractMap.SimpleEntry<>(HTTP_OK, "OK");
         try {
-            assertEquals(entry, HtmlLinkChecker.checkLink("http://google.com"));
+            assertEquals(entry, HtmlLinkChecker.checkLink("file:///C:/3.mwb", "http://google.com"));
         }
         catch (IOException e)
         {

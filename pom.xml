@@ -27,6 +27,12 @@
             <artifactId>jsoup</artifactId>
             <version>1.12.1</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/de.mirkosertic.bytecoder/java.base -->
+        <dependency>
+            <groupId>de.mirkosertic.bytecoder</groupId>
+            <artifactId>java.base</artifactId>
+            <version>2019-12-08</version>
+        </dependency>
     </dependencies>
 
 </project>
