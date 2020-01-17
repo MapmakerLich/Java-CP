@@ -145,6 +145,15 @@ public class HtmlLinkChecker {
                 System.out.println("Link check failure");
             }
         });
+        executor.shutdown();
+        try
+        {
+            executor.awaitTermination(3, TimeUnit.MINUTES);
+        }
+        catch (InterruptedException ex)
+        {
+            System.out.println("Thread interruption error");
+        }
     }
 
     static int configProperties() throws IOException
