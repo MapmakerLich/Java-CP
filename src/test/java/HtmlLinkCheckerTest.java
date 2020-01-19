@@ -69,6 +69,7 @@ public class HtmlLinkCheckerTest {
         try {
             assertEquals(entry, HtmlLinkChecker.checkLink("file:///C:/3.mwb", "http://google.com"));
             assertEquals(entry, HtmlLinkChecker.checkLink("file://localhost/C:/3.mwb", "http://google.com"));
+            assertEquals(entry, HtmlLinkChecker.checkLink("/200", "http://httpstat.us"));
             assertEquals(entry1, HtmlLinkChecker.checkLink("file://localhost/C:/3.mw", "http://google.com"));
         }
         catch (IOException e)

@@ -91,6 +91,12 @@ public class HtmlLinkChecker {
         {
             String str = name+link;
             url = new URL(str);
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("GET");
+            int status = con.getResponseCode();
+            String mess = con.getResponseMessage();
+            con.disconnect();
+            return new AbstractMap.SimpleEntry<>(status, mess);
         }
         else if (link.startsWith("file://"))
         {
@@ -122,7 +128,6 @@ public class HtmlLinkChecker {
             con.disconnect();
             return new AbstractMap.SimpleEntry<>(status, mess);
         }
-        return null;
     }
 
     static int configProperties() throws IOException
