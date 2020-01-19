@@ -65,7 +65,7 @@ public class HtmlLinkChecker {
             NodeList nodeList = (NodeList) xPath.compile("//@href").evaluate(w3cDoc, XPathConstants.NODESET);
             for (int i=0;i<nodeList.getLength();i++)
             {
-                addToReport(nodeList.item(i).getNodeValue(), name);
+                Saver.addToReport(nodeList.item(i).getNodeValue(), name);
             }
         }
         catch (XPathExpressionException e) {
@@ -75,7 +75,7 @@ public class HtmlLinkChecker {
             NodeList nodeList = (NodeList) xPath.compile("//@src").evaluate(w3cDoc, XPathConstants.NODESET);
             for (int i=0;i<nodeList.getLength();i++)
             {
-                addToReport(nodeList.item(i).getNodeValue(), name);
+                Saver.addToReport(nodeList.item(i).getNodeValue(), name);
             }
         }
         catch (XPathExpressionException e) {
@@ -97,7 +97,7 @@ public class HtmlLinkChecker {
             String str;
             if (link.startsWith("file://localhost/"))
             {
-                str = link.substring(16);
+                str = link.substring(17);
             }
             else
             {
@@ -125,24 +125,6 @@ public class HtmlLinkChecker {
         return null;
     }
 
-    static void addToReport(String link, String name)
-    {
-        try
-        {
-            Map.Entry<Integer, String> map = checkLink(link, name);
-            if ((map.getKey() < HTTP_OK)||(map.getKey() >= HTTP_MULT_CHOICE))
-            {
-                reportStream.println(link+","+map.getKey()+","+map.getValue());
-                counter++;
-            }
-        }
-        catch (IOException e)
-        {
-            reportStream.println(link+",-1,No Such Host");
-            counter++;
-        }
-    }
-
     static int configProperties() throws IOException
     {
         Properties props = new Properties(1);
@@ -160,17 +142,14 @@ public class HtmlLinkChecker {
                 System.out.println("Command line reading error");
                 return;
             }
+            reportStream = new PrintStream(reportFile);
         }
         catch (ParseException e)
         {
             System.out.println("Parsing failed");
             return;
         }
-        try
-        {
-            reportStream = new PrintStream(reportFile);
-        }
-        catch (IOException e)
+        catch (FileNotFoundException e)
         {
             System.out.println("Failed report creation");
             return;
@@ -178,32 +157,30 @@ public class HtmlLinkChecker {
         try
         {
             pool = configProperties();
+            ExecutorService executor = Executors.newFixedThreadPool(pool);
+            for (String string: fileList)
+            {
+                executor.execute(()->{
+                    try {
+                        parseDocument(string);
+                    }
+                    catch (IOException e)
+                    {
+                        System.out.println("Read error");
+                        return;
+                    }
+                });
+            }
+            executor.shutdown();
+            executor.awaitTermination(3, TimeUnit.MINUTES);
         }
         catch (IOException e)
         {
             System.out.println("Config error");
             return;
         }
-        ExecutorService executor = Executors.newFixedThreadPool(pool);
-        for (String string: fileList)
+        catch (InterruptedException e)
         {
-            executor.execute(()->{
-                try {
-                    parseDocument(string);
-                }
-                catch (IOException e)
-                {
-                    System.out.println("Read error");
-                    return;
-                }
-            });
-        }
-        executor.shutdown();
-        try
-        {
-            executor.awaitTermination(3, TimeUnit.MINUTES);
-        }
-        catch (InterruptedException e) {
             System.out.println("Thread error");
         }
         System.out.println("Found "+counter+" broken links, for details check file "+reportFile);
